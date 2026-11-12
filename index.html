@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title></title>
+  <style>
+    :root {font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#172033; background:#f4f6fa;}
+    *{box-sizing:border-box} body{margin:0} main{max-width:900px;margin:40px auto;padding:0 18px 50px}
+    header{margin-bottom:24px} h1{font-size:2rem;margin:0 0 8px} .muted{color:#56647b} .eyebrow{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:#5965be;font-weight:750;margin-bottom:10px}
+    .panel{background:white;border:1px solid #dfe5ed;border-radius:18px;padding:24px;margin:18px 0;box-shadow:0 8px 24px rgba(22,34,63,.035)}
+    textarea{display:block;width:100%;min-height:145px;resize:vertical;padding:14px;border-radius:10px;border:1px solid #cbd5e1;font:inherit;line-height:1.55;color:#172033}
+    textarea:focus,input:focus{outline:3px solid #c8d5ff;outline-offset:2px}
+    .row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between}.stack{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    button{border:0;border-radius:10px;padding:11px 18px;cursor:pointer;font-size:.96rem;font-weight:700;background:#e8edf5;color:#1b2b40}button:hover{filter:brightness(.96)} button:disabled{opacity:.45;cursor:not-allowed}
+    button.primary{background:#4057d6;color:#fff} .reader{min-height:205px;display:flex;align-items:center;justify-content:center;background:#111d35;color:white;border-radius:14px;margin:18px 0;overflow:hidden;padding:20px}
+    #word{font-size:clamp(2.1rem,7vw,4.5rem);font-weight:730;text-align:center;overflow-wrap:anywhere;line-height:1.2}
+    label{font-weight:650}input[type=range]{width:min(300px,55vw);accent-color:#4057d6} .stat{font-variant-numeric:tabular-nums;font-weight:750}
+    .help{font-size:.87rem;color:#64748b;line-height:1.5}.progress{width:100%;height:8px;border-radius:30px;background:#e7ecf4;overflow:hidden;margin-top:14px}#progressBar{width:0%;height:100%;background:#4057d6;transition:width .12s linear}
+    .notice{padding:12px;border-radius:10px;background:#eef2ff;color:#33429c;font-size:.92rem;margin-top:12px}
+    [hidden]{display:none!important} select{max-width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:10px;background:white;color:inherit;font:inherit}
+    select:focus,button:focus-visible{outline:3px solid #c8d5ff;outline-offset:2px}
+    .modes{display:flex;gap:8px;margin-bottom:20px}.modes button[aria-pressed=true]{background:#4057d6;color:white}
+    #satSetup{margin-bottom:20px}#satSetup select{display:block;width:100%;margin-top:10px}
+    fieldset{border:0;padding:0;margin:0}legend{font-weight:700;font-size:1.15rem;margin-bottom:16px;line-height:1.5}
+    .choice{display:flex;gap:12px;align-items:baseline;padding:14px;border:1px solid #dfe5ed;border-radius:10px;margin-bottom:10px;font-weight:400;line-height:1.5;cursor:pointer}
+    .choice:has(input:checked){background:#eef2ff;border-color:#4057d6}.choice input{accent-color:#4057d6;flex-shrink:0}
+    #feedback{line-height:1.6}#results{display:flex;gap:24px;flex-wrap:wrap;margin:18px 0}#results div{flex:1;min-width:120px}#results dt{font-size:.85rem;color:#64748b}#results dd{margin:6px 0;font-weight:750;font-size:1.15rem}
+    @media(max-width:560px){main{margin:22px auto}.panel{padding:17px}.stack{width:100%}.stack button{flex:1}}
+  </style>
+</head>
+<body>
+<main>
+  <header><div class="eyebrow">Reading practice • prototype 01</div><h1></h1><p class="muted">Paste a passage. Read one word at a time. Control your pace.</p></header>
+  <section class="panel">
+    <div class="modes" role="group" aria-label="Reading mode">
+      <button id="freeMode" aria-pressed="true">Free Reading</button>
+      <button id="satMode" aria-pressed="false">SAT Practice</button>
+    </div>
+    <div id="satSetup" hidden>
+      <label for="satSelect">Choose a passage</label>
+      <select id="satSelect"></select>
+      <p class="help" id="satInfo"></p>
+      <p class="help">Original SAT-style practice, not official SAT material. Read the passage, then answer one question.</p>
+    </div>
+    <div id="freeSetup">
+    <label for="passage">Your passage</label>
+    <p class="help">Use your own text or the sample below.</p>
+    <textarea id="passage">Researchers once believed that a good night's sleep helped only with feeling rested. More recent studies suggest that sleep also supports memory. During sleep, the brain appears to strengthen some of the connections involved in learning. However, scientists continue to investigate which kinds of information benefit most and why.</textarea>
+    </div>
+    <div class="row" style="margin-top:17px">
+      <label for="speed">Speed: <span class="stat" id="speedLabel">250</span> WPM</label>
+      <input type="range" id="speed" min="100" max="800" step="25" value="250" />
+    </div>
+    <div class="reader" aria-live="off" aria-label="Reading display"><span id="word">Ready?</span></div>
+    <div class="row">
+      <div class="stack">
+        <button id="start" class="primary">Start</button><button id="pause" disabled>Pause</button><button id="back">← Back 1</button><button id="reset">Reset</button>
+      </div>
+      <span class="help"><span class="stat" id="counter">0 / 0</span> words · <span class="stat" id="remaining">0s</span> remaining</span>
+    </div>
+    <div class="progress" role="progressbar" aria-label="Reading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress"><div id="progressBar"></div></div>
+    <p class="help">Shortcuts: Space to pause/resume · ← back one word · → forward one word. Available outside text fields and the speed slider.</p>
+    <div class="notice" id="status" role="status">Press Start to begin.</div>
+  </section>
+  <section class="panel" id="quiz" aria-label="Comprehension question" hidden>
+    <p class="eyebrow" id="questionSkill"></p>
+    <form id="answerForm">
+      <fieldset id="answerFields"><legend id="questionText" tabindex="-1"></legend><div id="choices"></div></fieldset>
+      <p class="help" id="answerError" role="alert"></p>
+      <button class="primary" id="submitAnswer" type="submit">Submit answer</button>
+    </form>
+    <div id="feedback" class="notice" role="status" hidden></div>
+    <dl id="results" hidden>
+      <div><dt>Reading speed</dt><dd id="resultSpeed"></dd></div>
+      <div><dt>Active reading time</dt><dd id="resultTime"></dd></div>
+      <div><dt>Session accuracy</dt><dd id="resultAccuracy"></dd></div>
+    </dl>
+    <p class="help" id="resultNote" hidden>Reading time excludes pauses and answering. Speed is your time-weighted WPM setting; word skips can affect the time. Accuracy counts the first submitted answer for each passage in this session.</p>
+    <button id="tryAnother" hidden>Try Another Passage</button>
+  </section>
+  <p class="help">A higher WPM setting does not automatically mean better comprehension. Use SAT Practice to check your understanding.</p>
+</main>
+<script src="sat-passages.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+  const passage = $('passage'), speed = $('speed'), word = $('word');
+  let words = [], index = 0, timer = null, running = false;
+  let mode = 'free', elapsed = 0, weightedSpeed = 0, segmentStart = null;
+  let segmentSpeed = Number(speed.value), completedStats = null, submitted = false;
+  const sessionAnswers = new Map();
+  const now = () => performance.now();
+  const selectedPassage = () => satPassages[Number($('satSelect').value)];
+  function splitWords(){return (mode==='sat'?selectedPassage().text:passage.value).trim().split(/\s+/).filter(Boolean)}
+  function recordTime(){
+    if(segmentStart===null)return;
+    const duration=Math.max(0,now()-segmentStart);
+    elapsed+=duration;weightedSpeed+=duration*segmentSpeed;segmentStart=now();
+  }
+  function stopTimer(){if(running)recordTime();segmentStart=null;if(timer !== null) clearTimeout(timer);timer=null;running=false;$('pause').disabled=true;$('pause').textContent='Pause'}
+  function hideQuiz(){ $('quiz').hidden=true; }
+  function refresh(){
+    const total = words.length;
+    const pct = total ? index / total * 100 : 0;
+    const seconds = Math.ceil((total - index) * 60 / Number(speed.value));
+    const minutes = Math.floor(seconds / 60);
+    $('counter').textContent = `${index} / ${total}`;
+    $('remaining').textContent = minutes ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
+    $('progressBar').style.width = pct + '%';
+    $('progress').setAttribute('aria-valuenow', String(Math.round(pct)));
+  }
+  function reset(){stopTimer();elapsed=0;weightedSpeed=0;completedStats=null;submitted=false;hideQuiz();words=splitWords();index=0;word.textContent='Ready?';$('start').textContent='Start';$('status').textContent='Press Start to begin.';refresh()}
+  // index counts words already shown. Keep the final word visible on completion.
+  function finish(){
+    stopTimer();$('start').textContent='Read again';
+    $('status').textContent=mode==='sat'?'Finished. Answer the question below.':'Finished.';
+    completedStats={time:elapsed,speed:elapsed?weightedSpeed/elapsed:Number(speed.value)};
+    if(mode==='sat')showQuestion();
+  }
+  function scheduleNext(){clearTimeout(timer);timer=setTimeout(tick,60000/Number(speed.value))}
+  function tick(){
+    if(!running)return;
+    if(index < words.length){word.textContent=words[index];index++;refresh()}
+    if(index >= words.length)finish();
+    else scheduleNext();
+  }
+  function start(){if(running)return;if(index>=words.length || !words.length)reset();if(!words.length){$('status').textContent='Add some text first.';return}running=true;segmentStart=now();segmentSpeed=Number(speed.value);$('pause').disabled=false;$('start').textContent='Playing…';$('status').textContent='Reading in progress';if(index===0)tick();else scheduleNext()}
+  function pause(){if(!running)return;stopTimer();$('start').textContent='Resume';$('status').textContent='Paused'}
+  $('start').addEventListener('click',start);$('pause').addEventListener('click',pause);
+  function moveWord(direction){
+    if(!words.length)return;
+    // Revisiting a completed passage starts a fresh reading attempt.
+    if(completedStats && direction<0){elapsed=0;weightedSpeed=0;completedStats=null;submitted=false;hideQuiz()}
+    index=Math.max(0,Math.min(words.length,index+direction));
+    word.textContent=words[index-1]||'Ready?';
+    refresh();
+    if(index===words.length){finish();return}
+    $('start').textContent=running?'Playing…':'Resume';
+    $('status').textContent=direction<0?'Moved back one word':'Moved forward one word';
+    if(running)scheduleNext();
+  }
+  $('back').addEventListener('click',()=>moveWord(-1));
+  $('reset').addEventListener('click',reset);
+  speed.addEventListener('input',()=>{if(running)recordTime();segmentSpeed=Number(speed.value);$('speedLabel').textContent=speed.value;refresh();if(running)scheduleNext()});
+  passage.addEventListener('input',reset);
+  document.addEventListener('keydown',e=>{
+    const target=document.activeElement;
+    if(e.altKey||e.ctrlKey||e.metaKey||target.isContentEditable||(target.closest&&target.closest('#quiz'))||['TEXTAREA','INPUT','SELECT'].includes(target.tagName))return;
+    if(!['Space','ArrowLeft','ArrowRight'].includes(e.code))return;
+    e.preventDefault();
+    if(e.code==='Space'){if(!e.repeat)running?pause():start()}
+    else moveWord(e.code==='ArrowLeft'?-1:1);
+  });
+  function showQuestion(){
+    if(!$('quiz').hidden)return;
+    const item=selectedPassage();
+    $('questionSkill').textContent=item.skill;
+    $('questionText').textContent=item.question;
+    $('choices').replaceChildren();
+    item.options.forEach((option,i)=>{
+      const label=document.createElement('label');label.className='choice';
+      const radio=document.createElement('input');radio.type='radio';radio.name='answer';radio.value=String(i);radio.required=true;
+      const text=document.createElement('span');text.textContent=`${String.fromCharCode(65+i)}. ${option}`;
+      label.append(radio,text);$('choices').append(label);
+    });
+    $('answerFields').disabled=false;$('submitAnswer').disabled=false;
+    $('answerError').textContent='';
+    ['feedback','results','resultNote','tryAnother'].forEach(id=>$(id).hidden=true);
+    $('quiz').hidden=false;
+    $('questionText').focus({preventScroll:true});
+  }
+  function changeMode(next){
+    mode=next;$('freeMode').setAttribute('aria-pressed',String(mode==='free'));
+    $('satMode').setAttribute('aria-pressed',String(mode==='sat'));
+    $('freeSetup').hidden=mode==='sat';$('satSetup').hidden=mode!=='sat';reset();
+  }
+  function updatePassage(){
+    const item=selectedPassage();
+    $('satInfo').textContent=`${item.skill} · ${item.text.trim().split(/\s+/).length} words`;
+    reset();
+  }
+  satPassages.forEach((item,i)=>{
+    const option=document.createElement('option');option.value=String(i);option.textContent=`${i+1}. ${item.title}`;$('satSelect').append(option);
+  });
+  $('satSelect').value='0';
+  $('freeMode').addEventListener('click',()=>changeMode('free'));
+  $('satMode').addEventListener('click',()=>changeMode('sat'));
+  $('satSelect').addEventListener('change',updatePassage);
+  $('answerForm').addEventListener('submit',event=>{
+    event.preventDefault();
+    if(submitted||!completedStats||mode!=='sat')return;
+    const choice=$('choices').querySelector('input:checked');
+    if(!choice){$('answerError').textContent='Choose an answer first.';return}
+    const item=selectedPassage(), correct=Number(choice.value)===item.answer;
+    submitted=true;
+    const passageId=Number($('satSelect').value);
+    if(!sessionAnswers.has(passageId))sessionAnswers.set(passageId,correct);
+    const right=Array.from(sessionAnswers.values()).filter(Boolean).length;
+    $('feedback').textContent=`${correct?'Correct!':'Not quite.'} Answer ${String.fromCharCode(65+item.answer)}: ${item.options[item.answer]} ${item.explanation}`;
+    $('resultSpeed').textContent=`${Math.round(completedStats.speed)} WPM`;
+    $('resultTime').textContent=`${(completedStats.time/1000).toFixed(1)}s`;
+    $('resultAccuracy').textContent=`${Math.round(right/sessionAnswers.size*100)}% (${right}/${sessionAnswers.size})`;
+    $('answerError').textContent='';$('answerFields').disabled=true;$('submitAnswer').disabled=true;
+    ['feedback','results','resultNote','tryAnother'].forEach(id=>$(id).hidden=false);
+  });
+  $('tryAnother').addEventListener('click',()=>{
+    const current=Number($('satSelect').value);
+    let next=(current+1)%satPassages.length;
+    for(let offset=1;offset<satPassages.length;offset++){
+      const candidate=(current+offset)%satPassages.length;
+      if(!sessionAnswers.has(candidate)){next=candidate;break}
+    }
+    $('satSelect').value=String(next);updatePassage();$('start').focus();
+  });
+  updatePassage();
+</script>
+</body>
+</html>
